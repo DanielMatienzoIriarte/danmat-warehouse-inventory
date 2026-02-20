@@ -3,49 +3,36 @@ from contextlib import asynccontextmanager
 from rotoger import Rotoger
 
 from src.core.inventory_redis import get_redis
-from src.core.database import sessionmanager as db_sessionmanager
 from src.core.config import settings as global_settings
 from src.routers.product import router
+from src.core.database import DatabaseSessionManager
 
-#logger = Rotoger().get_logger()
-
+app: FastAPI = FastAPI(
+        title="DanMat Inventory",
+        version="0.0.1"
+    )
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan():
+    logger = Rotoger().get_logger()
     app.redis = await get_redis()
-    #postgres_dsn = global_settings.postgres_url
+    database = DatabaseSessionManager()
 
     try:
-        """
-        await logger.ainfo(
-            "Postgresql pool created",
-            idle_size=app.postgres_pool.get_idle_size()
-        ) """
+        # Attach the DB pool to the app state
+        app.state.postgres_pool = database.create_db_pool()
+
+        app.include_router(router)
         yield
-        if db_sessionmanager._engine is not None:
-            await db_sessionmanager.close()
+        if database._engine:
+            await database._engine.dispose()
     except Exception as exception:
-        #await logger.aerror("Error during app startup", error=repr(exception))
+        await logger.error("Error during app startup", error=repr(exception))
         raise
     finally:
         await app.redis.close()
-        await app.postgres_pool.close()
+        await database.close()
 
-
-def create_app() -> FastAPI:
-    app = FastAPI(
-        title="Danmat Inventory",
-        version="0.0.1",
-        lifespan=lifespan,
-    )
-
-    @app.get("/index")
-    def get_index(request: Request):
-        return {"hola": "mundo"}
-    
-    app.include_router(router)
-
-    return app
-
-
-app = create_app()
+@app.get("/health")
+def get_index(request: Request):
+    return {"hola": "mundo"}

@@ -2,7 +2,7 @@ import uuid
 from fastapi import APIRouter, Depends
 
 from src.database.models.product import Product
-from src.dependencies.product_dependencies import db_session_dependency
+#from src.dependencies.product_dependencies import db_session_dependency
 from src.services.product import ProductService
 
 
@@ -23,7 +23,7 @@ async def get_product(
     product = await ProductService.get_product(product_id)
     return product
 
-
+'''
 @router.get(
     "/aux/{product_id}",
     response_model=Product,
@@ -35,13 +35,15 @@ async def get(
 ):
     product = await ProductService.get_by_id(db_session, product_id)
     return product
-"""
+'''
+'''
 @router.post(
     "/",
     response_model=Product,
     summary="Save a product item"
 )
-async def save(
+async def save_product(
     request
 ):
-    product_id = await ProductService.save()"""
+    product = await ProductService.save_product()
+'''
