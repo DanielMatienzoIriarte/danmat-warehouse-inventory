@@ -3,35 +3,38 @@ from contextlib import asynccontextmanager
 from rotoger import Rotoger
 
 from src.core.inventory_redis import get_redis
-from src.core.config import settings as global_settings
 from src.routers.product import router
 from src.core.database import DatabaseSessionManager
 
-app: FastAPI = FastAPI(
-        title="DanMat Inventory",
-        version="0.0.1"
-    )
+logger = Rotoger().get_logger()
+database = DatabaseSessionManager()
+
 
 @asynccontextmanager
-async def lifespan():
-    logger = Rotoger().get_logger()
+async def lifespan(app: FastAPI):
+    await database.init_db()
     app.redis = await get_redis()
-    database = DatabaseSessionManager()
 
     try:
         # Attach the DB pool to the app state
         app.state.postgres_pool = database.create_db_pool()
 
-        app.include_router(router)
         yield
-        if database._engine:
-            await database._engine.dispose()
+        if database.get_db_pool():
+            await database.close()
+
+        await app.redis.close()
     except Exception as exception:
         await logger.error("Error during app startup", error=repr(exception))
         raise
-    finally:
-        await app.redis.close()
-        await database.close()
+
+app: FastAPI = FastAPI(
+        lifespan=lifespan,
+        title="DanMat Inventory",
+        version="0.0.1"
+    )
+
+app.include_router(router)
 
 @app.get("/health")
 def get_index(request: Request):
