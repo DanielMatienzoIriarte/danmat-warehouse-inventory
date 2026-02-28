@@ -30,6 +30,17 @@ class ProductService:
 
         return products
 
+    async def update_quantity(self, product_id:uuid.UUID, process: str, quantity:int):
+        product = await self.product_repository.update_quantity(product_id, process, quantity)
+        if not product:
+            raise ValueError("Products doesn't exist")
+
+        return product
+
+    async def update(self, product_id:uuid.UUID, product_schema: ProductSchema):
+        product = await self.product_repository.update(product_id, product_schema)
+
+        return product
 '''
     async def get_by_id(self, db_session: AsyncSession, product_id: uuid.UUID) -> Product:
         product = await db_session.scalars(select(Product).where(Product.product_id == product_id)).first()

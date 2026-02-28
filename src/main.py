@@ -6,7 +6,7 @@ from src.core.inventory_redis import get_redis
 from src.routers.product import router
 from src.core.database import DatabaseSessionManager
 
-logger = Rotoger().get_logger()
+#logger = Rotoger().get_logger()
 database = DatabaseSessionManager()
 
 
@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
 
         await app.redis.close()
     except Exception as exception:
-        await logger.error("Error during app startup", error=repr(exception))
+        #await logger.error("Error during app startup", error=repr(exception))
         raise
 
 app: FastAPI = FastAPI(

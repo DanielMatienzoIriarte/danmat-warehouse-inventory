@@ -1,7 +1,9 @@
+import string
 import uuid
 from typing import AsyncGenerator, List
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from watchfiles import awatch
 
 from src.database.models.product import Product
 from src.services.product import ProductService
@@ -55,3 +57,34 @@ async def get_all_products(
 ):
     products:List[Product] = await service.get_all_products()
     return products
+
+@router.patch(
+    "/{product_id}/{process}/{quantity}",
+    response_model=Product,
+    summary="Update a product's quantity"
+)
+async def update_quantity(
+    product_id : uuid.UUID,
+    process: str,
+    quantity: int,
+    product_service: ProductService = Depends(get_product_service),
+):
+    try:
+        return await product_service.update_quantity(product_id, process, quantity)
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err))
+
+@router.put(
+    "/{product_id}",
+    response_model=Product,
+    summary="Update a product's data"
+)
+async def update_product(
+        product_id: uuid.UUID,
+        payload:ProductSchema,
+        product_service: ProductService = Depends(get_product_service)
+):
+    try:
+        return await product_service.update(product_id, payload)
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err))
